@@ -1,5 +1,7 @@
-version: "3.9"
 services:
   flask-web:
     ports:
       - "8080:5000"
+  mariadb:
+    ports:
+      - "3306:3306"
