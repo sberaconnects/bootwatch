@@ -6,7 +6,23 @@ Self-hosted boot analysis dashboard for embedded Linux device fleets. Ingests `s
 
 ## Screenshots
 
-> Add screenshots here after first run — `docs/screenshots/`.
+**Overview** — fleet health at a glance
+![Overview](docs/screenshots/01-overview.png)
+
+**Boot Log** — paginated, filterable boot history
+![Boot Log](docs/screenshots/02-boots.png)
+
+**Boot Detail** — blame table, trend chart, critical chain
+![Boot Detail](docs/screenshots/03-boot-detail.png)
+
+**Devices**
+![Devices](docs/screenshots/04-devices.png)
+
+**Services** — fleet-wide worst offenders
+![Services](docs/screenshots/06-services.png)
+
+**Perf** — CPU counters + flamegraph
+![Perf](docs/screenshots/07-perf.png)
 
 ---
 
