@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Boot #{{ boot.id }} — BootWatch{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap">
+    <h1>{{ boot.device_name }} — Boot #{{ boot.id }}</h1>
+    {% set color = '#9ece6a' if boot.boot_time_s < dev_avg * slow_mult
+                   else '#e0af68' if boot.boot_time_s < dev_avg * very_slow_mult
+                   else '#f7768e' %}
+    <span style="font-size:28px;font-weight:700;color:{{ color }}">{{ "%.1f"|format(boot.boot_time_s) }}s</span>
+    <span style="color:{{ '#9ece6a' if delta <= 0 else '#f7768e' }};font-size:14px">
+      {{ "▲ +%.1f"|format(delta) if delta > 0 else "▼ %.1f"|format(delta) }}s vs avg
+    </span>
+  </div>
+  <p>
+    <span class="badge badge-blue">{{ boot.revision }}</span>
+    &nbsp;{{ boot.collected_at }}
+    &nbsp;<a href="{{ url_for('device_detail', device_id=boot.device_id) }}" style="color:#565f89;font-size:12px">← {{ boot.device_name }}</a>
+  </p>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <div class="card" style="padding:0">
+    <div style="padding:12px 16px"><h2>Service Blame</h2></div>
+    <table>
+      <thead><tr><th>Service</th><th>Time</th><th>Share</th></tr></thead>
+      <tbody>
+      {% for entry in blame %}
+        {% set pct = ((entry.time_s / max_blame) * 100)|int %}
+        {% set c = '#9ece6a' if entry.time_s < 1 else '#e0af68' if entry.time_s < 5 else '#f7768e' %}
+        <tr>
+          <td style="font-size:12px">{{ entry.service }}</td>
+          <td style="color:{{ c }};font-weight:600;white-space:nowrap">{{ "%.3f"|format(entry.time_s) }}s</td>
+          <td style="width:120px"><div class="bar-wrap"><div class="bar-fill" style="width:{{ pct }}%;background:{{ c }}"></div></div></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3" style="text-align:center;padding:20px;color:#565f89">No blame data</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>Boot Time Trend — last {{ trend|length }} boots</h2>
+      <div style="display:flex;align-items:flex-end;gap:4px;height:60px">
+      {% for t in trend %}
+        {% set pct = ((t.boot_time_s / trend_max) * 100)|int %}
+        {% set c = '#9ece6a' if t.boot_time_s < dev_avg * slow_mult
+                   else '#e0af68' if t.boot_time_s < dev_avg * very_slow_mult
+                   else '#f7768e' %}
+        <div style="flex:1;background:{{ c }};border-radius:2px 2px 0 0;height:{{ pct }}%;{{ 'outline:2px solid #ffffff44;' if t.id == boot.id else '' }}"
+             title="{{ '%.1f'|format(t.boot_time_s) }}s"></div>
+      {% endfor %}
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:#565f89"><span>oldest</span><span>newest</span></div>
+    </div>
+    <div class="card">
+      <h2>Critical Chain</h2>
+      {% if boot.raw_chain %}
+        <pre style="font-size:11px;color:#c0caf5;overflow-x:auto;white-space:pre-wrap;background:#1a1b26;padding:10px;border-radius:4px;line-height:1.5">{{ boot.raw_chain }}</pre>
+      {% else %}
+        <p style="color:#565f89;font-size:13px">No critical chain data collected</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

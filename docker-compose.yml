@@ -1,0 +1,40 @@
+version: "3.9"
+services:
+  mariadb:
+    image: mariadb:10.6
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: ${DB_NAME:-bootwatch}
+      MYSQL_USER: ${DB_USER:-bootwatch}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-bootwatch}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  flask-web:
+    build: ./web
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-change-me}
+      DB_HOST: mariadb
+      DB_USER: ${DB_USER:-bootwatch}
+      DB_PASSWORD: ${DB_PASSWORD:-bootwatch}
+      DB_NAME: ${DB_NAME:-bootwatch}
+      FLAMEGRAPH_DIR: ${FLAMEGRAPH_DIR:-/data/flamegraphs}
+      SLOW_BOOT_MULTIPLIER: ${SLOW_BOOT_MULTIPLIER:-1.2}
+      VERY_SLOW_BOOT_MULTIPLIER: ${VERY_SLOW_BOOT_MULTIPLIER:-2.0}
+    volumes:
+      - flamegraph_data:/data/flamegraphs
+
+volumes:
+  mariadb_data:
+  flamegraph_data:

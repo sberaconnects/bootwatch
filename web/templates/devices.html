@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Devices — BootWatch{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Devices</h1><p>{{ devices|length }} device(s) registered</p></div>
+<div class="card" style="padding:0">
+  <table>
+    <thead><tr><th>Name</th><th>Label</th><th>IP</th><th>Boots</th><th>Avg Boot</th><th>Min</th><th>Max</th><th>Last Seen</th></tr></thead>
+    <tbody>
+    {% for d in devices %}
+      <tr style="cursor:pointer" onclick="window.location='{{ url_for('device_detail', device_id=d.id) }}'">
+        <td><a href="{{ url_for('device_detail', device_id=d.id) }}">{{ d.name }}</a></td>
+        <td style="color:#565f89;font-size:12px">{{ d.label or '—' }}</td>
+        <td style="font-family:monospace;font-size:12px;color:#565f89">{{ d.ip_addr }}</td>
+        <td>{{ d.boot_count }}</td>
+        <td>{{ "%.1f"|format(d.avg_boot) if d.avg_boot else "—" }}s</td>
+        <td style="color:#9ece6a">{{ "%.1f"|format(d.min_boot) if d.min_boot else "—" }}s</td>
+        <td style="color:#f7768e">{{ "%.1f"|format(d.max_boot) if d.max_boot else "—" }}s</td>
+        <td style="color:#565f89;font-size:11px">{{ d.last_seen or "—" }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" style="text-align:center;padding:24px;color:#565f89">No devices yet</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

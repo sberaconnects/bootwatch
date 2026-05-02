@@ -1,0 +1,3 @@
+# devices.txt — one device per line: IP [name] [label]
+192.168.1.100 device-01 lab-prototype
+192.168.1.101 device-02 qa-unit
