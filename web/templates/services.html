@@ -1,5 +1,33 @@
 {% extends "base.html" %}
 {% block title %}Services — BootWatch{% endblock %}
 {% block content %}
-<div class="page-header"><h1>Services</h1></div>
+<div class="page-header"><h1>Services</h1><p>Fleet-wide systemd service boot times</p></div>
+<form method="get" class="filters">
+  <div class="filter-group">
+    <label>Revision</label>
+    <select name="revision" onchange="this.form.submit()">
+      <option value="">All revisions</option>
+      {% for r in all_revisions %}<option value="{{ r.revision }}" {{ 'selected' if rev_f == r.revision }}>{{ r.revision }}</option>{% endfor %}
+    </select>
+  </div>
+</form>
+<div class="card" style="padding:0">
+  <table>
+    <thead><tr><th>Service</th><th>Fleet Avg</th><th>Worst Time</th><th>Worst Device</th><th>Boots</th><th>Trend</th></tr></thead>
+    <tbody>
+    {% for svc in services %}
+      <tr>
+        <td style="font-size:12px"><a href="{{ url_for('boots') }}?service={{ svc.service }}">{{ svc.service }}</a></td>
+        <td style="font-weight:600;color:#e0af68">{{ "%.3f"|format(svc.avg_time) }}s</td>
+        <td style="color:#f7768e">{{ "%.3f"|format(svc.max_time) }}s</td>
+        <td style="color:#565f89;font-size:12px">{{ svc.worst_device or "—" }}</td>
+        <td style="color:#565f89">{{ svc.n_boots }}</td>
+        <td style="width:100px"><div class="bar-wrap"><div class="bar-fill" style="width:{{ ((svc.avg_time/max_time)*100)|int }}%;background:#e0af68"></div></div></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" style="text-align:center;padding:24px;color:#565f89">No service data yet</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}

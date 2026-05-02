@@ -1,5 +1,90 @@
 {% extends "base.html" %}
 {% block title %}Overview — BootWatch{% endblock %}
 {% block content %}
-<div class="page-header"><h1>Overview</h1></div>
+<div class="page-header">
+  <h1>Overview</h1>
+  <p>Fleet boot health at a glance</p>
+</div>
+
+<div class="card-grid" style="grid-template-columns:repeat(4,1fr)">
+  <div class="stat-card" style="--accent-bar:#7aa2f7">
+    <div class="number">{{ device_count }}</div><div class="label">Devices</div>
+  </div>
+  <div class="stat-card" style="--accent-bar:#9ece6a">
+    <div class="number">{{ boot_count }}</div><div class="label">Boots Recorded</div>
+  </div>
+  <div class="stat-card" style="--accent-bar:#f7768e">
+    <div class="number">{{ today_slow }}</div><div class="label">Slow Boots Today</div>
+  </div>
+  <div class="stat-card" style="--accent-bar:#e0af68">
+    <div class="number">{{ "%.1f"|format(fleet_avg) if fleet_avg else "—" }}s</div>
+    <div class="label">Fleet Avg Boot</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Devices</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
+  {% for dev in devices %}
+    {% set color = '#9ece6a' if dev.last_boot and dev.avg_boot and dev.last_boot < dev.avg_boot * slow_mult
+                   else '#e0af68' if dev.last_boot and dev.avg_boot and dev.last_boot < dev.avg_boot * very_slow_mult
+                   else '#f7768e' if dev.last_boot else '#565f89' %}
+    <a href="{{ url_for('device_detail', device_id=dev.id) }}" style="text-decoration:none">
+      <div style="background:#1a1b26;border:1px solid #414868;border-radius:6px;padding:12px;border-top:3px solid {{ color }}">
+        <div style="font-weight:600;color:#c0caf5;font-size:13px">{{ dev.name }}</div>
+        {% if dev.label %}<div style="font-size:10px;color:#565f89">{{ dev.label }}</div>{% endif %}
+        <div style="font-size:20px;font-weight:700;color:{{ color }};margin:8px 0">
+          {{ "%.1f"|format(dev.last_boot) if dev.last_boot else "—" }}s
+        </div>
+        <div style="font-size:10px;color:#565f89">{{ dev.last_revision or "—" }}</div>
+        {% if dev.sparkline %}
+        {% set max_spark = dev.sparkline | map(attribute='boot_time_s') | max %}
+        <div style="display:flex;align-items:flex-end;gap:2px;height:20px;margin-top:6px">
+          {% for s in dev.sparkline | reverse %}
+          <div style="flex:1;background:{{ color }};opacity:0.7;border-radius:1px;height:{{ ((s.boot_time_s / max_spark) * 100)|int }}%"></div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </a>
+  {% else %}
+    <p style="color:#565f89;grid-column:1/-1">No devices yet. Run collect.py to add one.</p>
+  {% endfor %}
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <div class="card">
+    <h2>Recent Boots</h2>
+    <table>
+      <thead><tr><th>Device</th><th>Boot Time</th><th>Revision</th><th>When</th></tr></thead>
+      <tbody>
+      {% for b in recent %}
+        <tr style="cursor:pointer" onclick="window.location='{{ url_for('boot_detail', boot_id=b.id) }}'">
+          <td>{{ b.device_name }}</td>
+          <td>{{ "%.1f"|format(b.boot_time_s) }}s</td>
+          <td><span class="badge badge-blue">{{ b.revision }}</span></td>
+          <td style="color:#565f89;font-size:11px">{{ b.collected_at }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" style="color:#565f89;text-align:center;padding:20px">No boots yet</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h2>Slowest Services (fleet avg)</h2>
+    {% for svc in slow_services %}
+      <div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+          <span style="color:#c0caf5">{{ svc.service }}</span>
+          <span style="color:#e0af68">{{ "%.2f"|format(svc.avg_time) }}s</span>
+        </div>
+        <div class="bar-wrap"><div class="bar-fill" style="width:{{ ((svc.avg_time/max_svc_time)*100)|int }}%;background:#e0af68"></div></div>
+      </div>
+    {% else %}
+      <p style="color:#565f89;font-size:13px">No service data yet</p>
+    {% endfor %}
+  </div>
+</div>
 {% endblock %}

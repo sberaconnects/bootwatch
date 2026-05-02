@@ -1,5 +1,59 @@
 {% extends "base.html" %}
 {% block title %}Boots — BootWatch{% endblock %}
 {% block content %}
-<div class="page-header"><h1>Boots</h1></div>
+<div class="page-header"><h1>Boots</h1><p>{{ total }} boot events recorded</p></div>
+
+<form method="get" class="filters">
+  <div class="filter-group">
+    <label>Device</label>
+    <select name="device" onchange="this.form.submit()">
+      <option value="">All</option>
+      {% for d in all_devices %}<option value="{{ d.name }}" {{ 'selected' if device_f == d.name }}>{{ d.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>Revision</label>
+    <select name="revision" onchange="this.form.submit()">
+      <option value="">All</option>
+      {% for r in all_revisions %}<option value="{{ r.revision }}" {{ 'selected' if rev_f == r.revision }}>{{ r.revision }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>Date</label>
+    <input type="date" name="date" value="{{ date_f }}" onchange="this.form.submit()">
+  </div>
+  {% if svc_f %}<div style="align-self:flex-end;font-size:12px;color:#e0af68">Filtered by service: {{ svc_f }} <a href="/boots" style="color:#565f89;margin-left:6px">✕ clear</a></div>{% endif %}
+</form>
+
+<div class="card" style="padding:0">
+  <table>
+    <thead><tr><th>#</th><th>Device</th><th>Boot Time</th><th>Revision</th><th>Source</th><th>When</th></tr></thead>
+    <tbody>
+    {% for b in boots %}
+      {% set dev_avg = avgs.get(b.device_id) %}
+      {% set color = '#9ece6a' if not dev_avg or b.boot_time_s < dev_avg * slow_mult
+                     else '#e0af68' if b.boot_time_s < dev_avg * very_slow_mult
+                     else '#f7768e' %}
+      <tr style="cursor:pointer" onclick="window.location='{{ url_for('boot_detail', boot_id=b.id) }}'">
+        <td style="color:#565f89">{{ b.id }}</td>
+        <td>{{ b.device_name }}</td>
+        <td style="color:{{ color }};font-weight:600">{{ "%.1f"|format(b.boot_time_s) }}s</td>
+        <td><span class="badge badge-blue">{{ b.revision }}</span></td>
+        <td style="color:#565f89;font-size:11px">{{ b.source }}</td>
+        <td style="color:#565f89;font-size:11px">{{ b.collected_at }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" style="text-align:center;padding:24px;color:#565f89">No boots match filters</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% set total_pages = ((total - 1) // per_page + 1) if total > 0 else 1 %}
+{% if total_pages > 1 %}
+<div style="display:flex;gap:8px;justify-content:center;margin-top:16px">
+  {% if page > 1 %}<a class="btn btn-secondary" href="?page={{ page-1 }}&device={{ device_f }}&revision={{ rev_f }}&date={{ date_f }}">← Prev</a>{% endif %}
+  <span style="color:#565f89;align-self:center;font-size:13px">Page {{ page }} / {{ total_pages }}</span>
+  {% if page < total_pages %}<a class="btn btn-secondary" href="?page={{ page+1 }}&device={{ device_f }}&revision={{ rev_f }}&date={{ date_f }}">Next →</a>{% endif %}
+</div>
+{% endif %}
 {% endblock %}

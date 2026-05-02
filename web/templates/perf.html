@@ -1,5 +1,131 @@
 {% extends "base.html" %}
 {% block title %}Perf — BootWatch{% endblock %}
 {% block content %}
-<div class="page-header"><h1>Perf</h1></div>
+<div class="page-header"><h1>Perf</h1><p>CPU counters and flamegraph profiling</p></div>
+
+<form method="get" class="filters">
+  <div class="filter-group">
+    <label>Device</label>
+    <select name="device" onchange="this.form.submit()">
+      <option value="">All devices</option>
+      {% for d in all_devices %}<option value="{{ d.name }}" {{ 'selected' if device_f == d.name }}>{{ d.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>Revision</label>
+    <select name="revision" onchange="this.form.submit()">
+      <option value="">All revisions</option>
+      {% for r in all_revisions %}<option value="{{ r.revision }}" {{ 'selected' if rev_f == r.revision }}>{{ r.revision }}</option>{% endfor %}
+    </select>
+  </div>
+  {% if selected_device %}
+  <div style="margin-left:auto;align-self:flex-end">
+    <button type="button" class="btn btn-primary" onclick="triggerFlamegraph({{ selected_device.id }}, '{{ rev_f or 'unknown' }}')">⚡ Profile Now</button>
+    <span id="fg-status" style="font-size:11px;color:#565f89;margin-left:8px"></span>
+  </div>
+  {% endif %}
+</form>
+
+{% if stats %}
+{% set s = stats[0] %}
+<div class="card">
+  <h2>Latest CPU Counters — {{ s.device_name }} · {{ s.revision }} · {{ s.collected_at }}</h2>
+  <div class="card-grid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat-card" style="--accent-bar:#7aa2f7">
+      <div class="number" style="font-size:28px">{{ "%.2f"|format(s.ipc) if s.ipc else "—" }}</div>
+      <div class="label">IPC</div>
+    </div>
+    <div class="stat-card" style="--accent-bar:#f7768e">
+      <div class="number" style="font-size:28px">{{ "%.1f"|format(s.cache_miss_pct) if s.cache_miss_pct else "—" }}%</div>
+      <div class="label">Cache Miss</div>
+    </div>
+    <div class="stat-card" style="--accent-bar:#e0af68">
+      <div class="number" style="font-size:28px">{{ "%.1f"|format(s.branch_miss_pct) if s.branch_miss_pct else "—" }}%</div>
+      <div class="label">Branch Miss</div>
+    </div>
+    <div class="stat-card" style="--accent-bar:#9ece6a">
+      <div class="number" style="font-size:28px">{{ "%.1fB"|format(s.cycles/1e9) if s.cycles else "—" }}</div>
+      <div class="label">Cycles ({{ s.duration_s }}s)</div>
+    </div>
+  </div>
+  {% if ipc_trend %}
+  <div style="margin-top:12px">
+    <div style="font-size:10px;color:#565f89;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">IPC trend</div>
+    {% set ipc_vals = ipc_trend | selectattr('ipc') | map(attribute='ipc') | list %}
+    {% set max_ipc = ipc_vals | max if ipc_vals else 1 %}
+    <div style="display:flex;align-items:flex-end;gap:4px;height:48px">
+    {% for t in ipc_trend %}
+      {% if t.ipc %}
+      <div style="flex:1;background:#7aa2f7;border-radius:2px 2px 0 0;opacity:0.8;height:{{ ((t.ipc / max_ipc) * 100)|int }}%"
+           title="{{ '%.2f'|format(t.ipc) }} IPC · {{ t.revision }} · {{ t.collected_at }}"></div>
+      {% endif %}
+    {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% else %}
+<div class="card"><p style="color:#565f89">No perf stat data yet. Run collect.py to collect counters.</p></div>
+{% endif %}
+
+<div class="card">
+  <h2>Flamegraph{% if flamegraph %} — {{ flamegraph.device_name }} · {{ flamegraph.revision }}{% endif %}</h2>
+  {% if flamegraph and flamegraph.status == 'done' and flamegraph.svg_path %}
+    <div style="font-size:11px;color:#565f89;margin-bottom:8px">Generated {{ flamegraph.generated_at }} · {{ flamegraph.revision }}</div>
+    <div style="background:#1a1b26;border-radius:4px;overflow:hidden;border:1px solid #414868">
+      <object data="/flamegraph/{{ flamegraph.id }}/svg" type="image/svg+xml" style="width:100%;height:300px;display:block">
+        <p style="color:#565f89;padding:20px">SVG not available</p>
+      </object>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <a href="/flamegraph/{{ flamegraph.id }}/svg" download class="btn btn-secondary">⬇ Download SVG</a>
+    </div>
+  {% elif flamegraph and flamegraph.status in ('pending', 'running') %}
+    <p style="color:#e0af68">⏳ Flamegraph generation in progress...</p>
+  {% elif flamegraph and flamegraph.status == 'failed' %}
+    <p style="color:#f7768e">Flamegraph generation failed. Check device SSH access.</p>
+  {% else %}
+    <p style="color:#565f89">No flamegraph yet.{% if selected_device %} Click "Profile Now" above.{% else %} Select a device first.{% endif %}</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function triggerFlamegraph(deviceId, revision) {
+  var statusEl = document.getElementById('fg-status');
+  statusEl.textContent = 'Triggering...';
+  fetch('/api/flamegraph/' + deviceId, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({revision: revision})
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.flamegraph_id) {
+      statusEl.textContent = 'Profiling (~15s)...';
+      pollFlamegraph(deviceId, statusEl);
+    } else {
+      statusEl.textContent = 'Error: ' + (data.error || 'unknown');
+    }
+  }).catch(function() { statusEl.textContent = 'Request failed'; });
+}
+
+function pollFlamegraph(deviceId, statusEl) {
+  var interval = setInterval(function() {
+    fetch('/api/flamegraph/' + deviceId + '/status')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.status === 'done') {
+          clearInterval(interval);
+          statusEl.textContent = 'Done! Reloading...';
+          setTimeout(function() { window.location.reload(); }, 800);
+        } else if (data.status === 'failed') {
+          clearInterval(interval);
+          statusEl.textContent = 'Failed — check SSH access';
+        } else {
+          statusEl.textContent = 'Running (' + data.status + ')...';
+        }
+      });
+  }, 2000);
+}
+</script>
 {% endblock %}

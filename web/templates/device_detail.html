@@ -1,5 +1,46 @@
 {% extends "base.html" %}
 {% block title %}{{ device.name }} — BootWatch{% endblock %}
 {% block content %}
-<div class="page-header"><h1>{{ device.name }}</h1></div>
+<div class="page-header">
+  <h1>{{ device.name }}</h1>
+  <p style="font-family:monospace">{{ device.ip_addr }}{% if device.label %} · {{ device.label }}{% endif %}</p>
+</div>
+
+<div class="card-grid" style="grid-template-columns:repeat(4,1fr)">
+  <div class="stat-card" style="--accent-bar:#7aa2f7">
+    <div class="number">{{ stats.n or 0 }}</div><div class="label">Total Boots</div>
+  </div>
+  <div class="stat-card" style="--accent-bar:#9ece6a">
+    <div class="number">{{ "%.1f"|format(stats.avg_t) if stats.avg_t else "—" }}s</div><div class="label">Avg Boot</div>
+  </div>
+  <div class="stat-card" style="--accent-bar:#9ece6a">
+    <div class="number">{{ "%.1f"|format(stats.min_t) if stats.min_t else "—" }}s</div><div class="label">Best Boot</div>
+  </div>
+  <div class="stat-card" style="--accent-bar:#f7768e">
+    <div class="number">{{ "%.1f"|format(stats.max_t) if stats.max_t else "—" }}s</div><div class="label">Worst Boot</div>
+  </div>
+</div>
+
+<div class="card" style="padding:0">
+  <div style="padding:12px 16px"><h2>Boot History (last 50)</h2></div>
+  <table>
+    <thead><tr><th>#</th><th>Boot Time</th><th>Revision</th><th>Source</th><th>When</th></tr></thead>
+    <tbody>
+    {% for b in boots %}
+      {% set c = '#9ece6a' if stats.avg_t and b.boot_time_s < stats.avg_t * slow_mult
+                 else '#e0af68' if stats.avg_t and b.boot_time_s < stats.avg_t * very_slow_mult
+                 else '#f7768e' if stats.avg_t else '#c0caf5' %}
+      <tr style="cursor:pointer" onclick="window.location='{{ url_for('boot_detail', boot_id=b.id) }}'">
+        <td style="color:#565f89">{{ b.id }}</td>
+        <td style="color:{{ c }};font-weight:600">{{ "%.1f"|format(b.boot_time_s) }}s</td>
+        <td><span class="badge badge-blue">{{ b.revision }}</span></td>
+        <td style="color:#565f89;font-size:11px">{{ b.source }}</td>
+        <td style="color:#565f89;font-size:11px">{{ b.collected_at }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" style="text-align:center;padding:24px;color:#565f89">No boots for this device</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}

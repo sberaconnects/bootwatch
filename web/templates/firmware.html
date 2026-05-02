@@ -1,5 +1,24 @@
 {% extends "base.html" %}
 {% block title %}Firmware — BootWatch{% endblock %}
 {% block content %}
-<div class="page-header"><h1>Firmware</h1></div>
+<div class="page-header"><h1>Firmware Revisions</h1><p>Boot time per SW revision</p></div>
+<div class="card" style="padding:0">
+  <table>
+    <thead><tr><th>Revision</th><th>Devices</th><th>Boots</th><th>Avg Boot</th><th>Min</th><th>Max</th></tr></thead>
+    <tbody>
+    {% for r in revisions %}
+      <tr style="cursor:pointer" onclick="window.location='{{ url_for('boots') }}?revision={{ r.revision }}'">
+        <td><span class="badge badge-blue">{{ r.revision }}</span></td>
+        <td>{{ r.device_count }}</td>
+        <td>{{ r.boot_count }}</td>
+        <td style="font-weight:600">{{ "%.1f"|format(r.avg_boot) if r.avg_boot else "—" }}s</td>
+        <td style="color:#9ece6a">{{ "%.1f"|format(r.min_boot) if r.min_boot else "—" }}s</td>
+        <td style="color:#f7768e">{{ "%.1f"|format(r.max_boot) if r.max_boot else "—" }}s</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" style="text-align:center;padding:24px;color:#565f89">No revisions yet</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}
