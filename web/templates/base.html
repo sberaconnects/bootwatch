@@ -5,97 +5,142 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}BootWatch{% endblock %}</title>
   <style>
+    :root {
+      --canvas:  #0d1117;
+      --surface: #161b22;
+      --sidebar: #0a0d12;
+      --border:  #30363d;
+      --hover:   #1c2128;
+      --accent:  #3fb950;
+      --accent2: #58a6ff;
+      --text:    #e6edf3;
+      --muted:   #7d8590;
+    }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-           background: #1a1b26; color: #c0caf5; min-height: 100vh; display: flex; }
+    body { font-family: ui-monospace, "Cascadia Code", "Fira Code", "Courier New", monospace;
+           background: var(--canvas); color: var(--text); min-height: 100vh; display: flex; }
 
-    .sidebar { width: 220px; background: #16161e; position: fixed; top: 0; left: 0;
+    .sidebar { width: 220px; background: var(--sidebar); position: fixed; top: 0; left: 0;
                height: 100vh; display: flex; flex-direction: column;
-               border-right: 1px solid #414868; z-index: 100; }
-    .sidebar-brand { display: block; padding: 20px 16px 16px;
-                     font-size: 15px; font-weight: 700; color: #7aa2f7;
-                     text-decoration: none; border-bottom: 1px solid #414868; }
-    .sidebar-nav { flex: 1; padding: 8px 0; overflow-y: auto; }
+               border-right: 1px solid var(--border); z-index: 100; }
+    .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 18px 16px;
+                     font-size: 14px; font-weight: 700; color: var(--accent);
+                     text-decoration: none; border-bottom: 1px solid var(--border);
+                     letter-spacing: 0.5px; }
+    .sidebar-brand-icon { width: 24px; height: 24px; background: var(--accent);
+                          border-radius: 4px; display: flex; align-items: center;
+                          justify-content: center; color: var(--sidebar);
+                          font-size: 13px; font-weight: 900; flex-shrink: 0; }
+    .sidebar-nav { flex: 1; padding: 10px 0; overflow-y: auto; }
     .sidebar-nav a { display: flex; align-items: center; gap: 10px;
-                     padding: 9px 16px; color: #565f89; text-decoration: none;
-                     font-size: 13px; transition: background 0.15s, color 0.15s; }
-    .sidebar-nav a:hover { background: #1f2335; color: #c0caf5; }
-    .sidebar-nav a.active { background: #1f2335; color: #7aa2f7; font-weight: 600; }
-    .sidebar-footer { padding: 12px 16px; font-size: 10px; color: #414868;
-                      border-top: 1px solid #414868; }
+                     padding: 8px 16px; color: var(--muted); text-decoration: none;
+                     font-size: 12px; transition: background 0.12s, color 0.12s;
+                     border-left: 2px solid transparent; }
+    .sidebar-nav a:hover { background: var(--hover); color: var(--text); border-left-color: var(--border); }
+    .sidebar-nav a.active { background: var(--hover); color: var(--accent); font-weight: 600;
+                            border-left-color: var(--accent); }
+    .sidebar-nav .nav-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+    .sidebar-section { padding: 16px 16px 4px; font-size: 9px; text-transform: uppercase;
+                       letter-spacing: 1px; color: var(--muted); }
+    .sidebar-footer { padding: 10px 16px; font-size: 10px; color: var(--border);
+                      border-top: 1px solid var(--border); font-family: ui-monospace, monospace; }
 
     .main { margin-left: 220px; padding: 28px 32px; width: calc(100% - 220px); }
 
-    .card { background: #24283b; border: 1px solid #414868; border-radius: 8px;
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
             padding: 16px; margin-bottom: 16px; }
-    .card > h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
-                 color: #565f89; margin-bottom: 12px; }
+    .card > h2 { font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+                 color: var(--muted); margin-bottom: 12px; }
     .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
                  gap: 12px; margin-bottom: 16px; }
 
-    .stat-card { background: #24283b; border: 1px solid #414868; border-radius: 8px;
-                 padding: 16px; position: relative; overflow: hidden; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+                 padding: 18px 16px; position: relative; overflow: hidden; }
     .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0;
-                         height: 3px; background: var(--accent-bar, #7aa2f7); }
-    .stat-card .number { font-size: 36px; font-weight: 700; color: #c0caf5; line-height: 1; }
-    .stat-card .label  { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px;
-                         color: #565f89; margin-top: 6px; }
+                         height: 2px; background: var(--accent-bar, var(--accent)); }
+    .stat-card .number { font-size: 34px; font-weight: 700; color: var(--text);
+                         line-height: 1; font-variant-numeric: tabular-nums; }
+    .stat-card .label  { font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px;
+                         color: var(--muted); margin-top: 6px; }
     .stat-card .delta  { font-size: 11px; margin-top: 4px; }
 
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px;
-         color: #565f89; padding: 8px 10px; border-bottom: 1px solid #414868; }
-    td { padding: 9px 10px; border-bottom: 1px solid #2f3354; color: #c0caf5; }
-    tr:hover td { background: #1f2335; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px;
+         color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    td { padding: 9px 10px; border-bottom: 1px solid rgba(48,54,61,0.6); color: var(--text); }
+    tr:hover td { background: var(--hover); }
     tr:last-child td { border-bottom: none; }
-    a { color: #7aa2f7; text-decoration: none; }
+    a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
     .page-header { margin-bottom: 24px; }
-    .page-header h1 { font-size: 22px; font-weight: 700; color: #c0caf5; }
-    .page-header p  { color: #565f89; font-size: 13px; margin-top: 4px; }
+    .page-header h1 { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+    .page-header p  { color: var(--muted); font-size: 12px; margin-top: 4px; }
 
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px;
-             font-size: 11px; font-weight: 600; }
-    .badge-green  { background: #1e2d1e; color: #9ece6a; border: 1px solid #3d6b3d; }
-    .badge-amber  { background: #2d2619; color: #e0af68; border: 1px solid #6b5219; }
-    .badge-red    { background: #2d1a1e; color: #f7768e; border: 1px solid #6b2535; }
-    .badge-blue   { background: #1a2035; color: #7aa2f7; border: 1px solid #2d4080; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px;
+             font-size: 11px; font-weight: 600; font-family: ui-monospace, monospace; }
+    .badge-green  { background: #0f2d1f; color: #3fb950; border: 1px solid #196c2e; }
+    .badge-amber  { background: #2d1f06; color: #d29922; border: 1px solid #6e4c0a; }
+    .badge-red    { background: #2d0f0f; color: #f85149; border: 1px solid #6e1c1c; }
+    .badge-blue   { background: #0a1929; color: #58a6ff; border: 1px solid #1f4c8c; }
 
-    .bar-wrap { background: #1a1b26; border-radius: 3px; height: 6px; overflow: hidden; }
-    .bar-fill  { height: 100%; border-radius: 3px; background: #7aa2f7; }
+    .bar-wrap { background: var(--canvas); border-radius: 2px; height: 5px; overflow: hidden; }
+    .bar-fill  { height: 100%; border-radius: 2px; background: var(--accent); }
 
     .filters { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 16px; flex-wrap: wrap; }
-    .filter-group label { display: block; font-size: 10px; text-transform: uppercase;
-                          letter-spacing: 0.5px; color: #565f89; margin-bottom: 4px; }
+    .filter-group label { display: block; font-size: 9px; text-transform: uppercase;
+                          letter-spacing: 0.6px; color: var(--muted); margin-bottom: 4px; }
     .filter-group select, .filter-group input {
-      background: #24283b; border: 1px solid #414868; border-radius: 4px;
-      padding: 5px 10px; color: #c0caf5; font-size: 12px; }
+      background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+      padding: 5px 10px; color: var(--text); font-size: 12px;
+      font-family: ui-monospace, monospace; }
+    .filter-group select:focus, .filter-group input:focus {
+      outline: none; border-color: var(--accent); }
     .btn { display: inline-block; padding: 6px 14px; border-radius: 4px; font-size: 12px;
-           font-weight: 600; cursor: pointer; border: none; text-decoration: none; }
-    .btn-primary   { background: #7aa2f7; color: #1a1b26; }
-    .btn-secondary { background: #2f3354; color: #c0caf5; border: 1px solid #414868; }
+           font-weight: 600; cursor: pointer; border: none; text-decoration: none;
+           font-family: ui-monospace, monospace; }
+    .btn-primary   { background: var(--accent); color: var(--canvas); }
+    .btn-secondary { background: var(--hover); color: var(--text); border: 1px solid var(--border); }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
   </style>
   {% block head %}{% endblock %}
 </head>
 <body>
 <aside class="sidebar">
-  <a class="sidebar-brand" href="{{ url_for('overview') }}">⚡ BootWatch</a>
+  <a class="sidebar-brand" href="{{ url_for('overview') }}">
+    <span class="sidebar-brand-icon">BW</span>
+    BootWatch
+  </a>
   <nav class="sidebar-nav">
+    <div class="sidebar-section">Analysis</div>
     <a href="{{ url_for('overview') }}"
-       class="{{ 'active' if request.endpoint == 'overview' else '' }}">📊 Overview</a>
-    <a href="{{ url_for('devices') }}"
-       class="{{ 'active' if request.endpoint in ('devices', 'device_detail') else '' }}">💻 Devices</a>
-    <a href="{{ url_for('firmware') }}"
-       class="{{ 'active' if request.endpoint == 'firmware' else '' }}">🏷 Firmware</a>
+       class="{{ 'active' if request.endpoint == 'overview' else '' }}">
+      <span class="nav-icon">▦</span> Overview
+    </a>
     <a href="{{ url_for('boots') }}"
-       class="{{ 'active' if request.endpoint in ('boots', 'boot_detail') else '' }}">📋 Boots</a>
+       class="{{ 'active' if request.endpoint in ('boots', 'boot_detail') else '' }}">
+      <span class="nav-icon">⏱</span> Boot Log
+    </a>
     <a href="{{ url_for('services') }}"
-       class="{{ 'active' if request.endpoint == 'services' else '' }}">📦 Services</a>
+       class="{{ 'active' if request.endpoint == 'services' else '' }}">
+      <span class="nav-icon">⚙</span> Services
+    </a>
     <a href="{{ url_for('perf') }}"
-       class="{{ 'active' if request.endpoint == 'perf' else '' }}">🔥 Perf</a>
+       class="{{ 'active' if request.endpoint == 'perf' else '' }}">
+      <span class="nav-icon">◎</span> Perf
+    </a>
+    <div class="sidebar-section">Fleet</div>
+    <a href="{{ url_for('devices') }}"
+       class="{{ 'active' if request.endpoint in ('devices', 'device_detail') else '' }}">
+      <span class="nav-icon">⊡</span> Devices
+    </a>
+    <a href="{{ url_for('firmware') }}"
+       class="{{ 'active' if request.endpoint == 'firmware' else '' }}">
+      <span class="nav-icon">◈</span> Firmware
+    </a>
   </nav>
-  <div class="sidebar-footer">BootWatch</div>
+  <div class="sidebar-footer">v0.1.0 · self-hosted</div>
 </aside>
 <div class="main">
   {% block content %}{% endblock %}
