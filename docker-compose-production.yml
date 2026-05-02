@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   flask-web:
     labels:
@@ -15,8 +14,11 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
       - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?ACME_EMAIL must be set in .env}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/acme/acme.json"
       - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
     ports:

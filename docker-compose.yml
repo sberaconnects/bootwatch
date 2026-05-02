@@ -1,13 +1,12 @@
-version: "3.9"
 services:
   mariadb:
     image: mariadb:10.6
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpass}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD must be set in .env}
       MYSQL_DATABASE: ${DB_NAME:-bootwatch}
       MYSQL_USER: ${DB_USER:-bootwatch}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-bootwatch}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
     volumes:
       - mariadb_data:/var/lib/mysql
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -24,7 +23,7 @@ services:
       mariadb:
         condition: service_healthy
     environment:
-      SECRET_KEY: ${SECRET_KEY:-change-me}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set in .env}
       DB_HOST: mariadb
       DB_USER: ${DB_USER:-bootwatch}
       DB_PASSWORD: ${DB_PASSWORD:-bootwatch}
